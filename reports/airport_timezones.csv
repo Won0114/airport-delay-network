@@ -1,0 +1,363 @@
+﻿airport,name,timezone
+ABE,Lehigh Valley International Airport,America/New_York
+ABI,Abilene Regional Airport,America/Chicago
+ABQ,Albuquerque International Sunport Airport,America/Denver
+ABR,Aberdeen Regional Airport,America/Chicago
+ABY,Southwest Georgia Regional Airport,America/New_York
+ACK,Nantucket Memorial Airport,America/New_York
+ACT,Waco Regional Airport,America/Chicago
+ACV,California Redwood Coast-Humboldt County Airport,America/Los_Angeles
+ACY,Atlantic City International Airport,America/New_York
+ADK,Adak Airport,America/Adak
+ADQ,Kodiak Airport,America/Anchorage
+AEX,Alexandria International Airport,America/Chicago
+AGS,Augusta Regional At Bush Field,America/New_York
+AKN,King Salmon Airport,America/Anchorage
+ALB,Albany International Airport,America/New_York
+ALO,Waterloo Regional Airport,America/Chicago
+ALW,Walla Walla Regional Airport,America/Los_Angeles
+AMA,Rick Husband Amarillo International Airport,America/Chicago
+ANC,Ted Stevens Anchorage International Airport,America/Anchorage
+APN,Alpena County Regional Airport,America/New_York
+ASE,Aspen-Pitkin County/Sardy Field,America/Denver
+ATL,Hartsfield/Jackson Atlanta International Airport,America/New_York
+ATW,Appleton International Airport,America/Chicago
+ATY,Watertown Regional Airport,America/Chicago
+AUS,Austin-Bergstrom International Airport,America/Chicago
+AVL,Asheville Regional Airport,America/New_York
+AVP,Wilkes-Barre/Scranton International Airport,America/New_York
+AZA,Mesa Gateway Airport,America/Phoenix
+AZO,Kalamazoo/Battle Creek International Airport,America/Detroit
+BDL,Bradley International Airport,America/New_York
+BET,Bethel Airport,America/Anchorage
+BFF,Scottsbluff/Western Nebraska Regional/Wm  B Heilig Field,America/Denver
+BFL,Meadows Field,America/Los_Angeles
+BGM,Greater Binghamton/Edwin A Link Field,America/New_York
+BGR,Bangor International Airport,America/New_York
+BHM,Birmingham-Shuttlesworth International Airport,America/Chicago
+BIH,Bishop Airport,America/Los_Angeles
+BIL,Billings Logan International Airport,America/Denver
+BIS,Bismarck Municipal Airport,America/Chicago
+BJI,Bemidji Regional Airport,America/Chicago
+BLI,Bellingham International Airport,America/Los_Angeles
+BLV,Scott AFB/Midamerica St Louis Airport,America/Chicago
+BMI,Central Il Regional/Bloomington-Normal Airport,America/Chicago
+BNA,Nashville International Airport,America/Chicago
+BOI,Boise Air Trml/Gowen Field,America/Boise
+BOS,General Edward Lawrence Logan International Airport,America/New_York
+BPT,Jack Brooks Regional Airport,America/Chicago
+BQK,Brunswick Golden Isles Airport,America/New_York
+BQN,Rafael Hernandez Airport,America/Puerto_Rico
+BRD,Brainerd Lakes Regional Airport,America/Chicago
+BRO,Brownsville/South Padre Island International Airport,America/Chicago
+BRW,Wiley Post-Will Rogers Memorial Airport,America/Anchorage
+BTM,Bert Mooney Airport,America/Denver
+BTR,"Baton Rouge Metro, Ryan Field",America/Chicago
+BTV,Patrick Leahy Burlington International Airport,America/New_York
+BUF,Buffalo Niagara International Airport,America/New_York
+BUR,Hollywood Burbank Airport,America/Los_Angeles
+BWI,Baltimore/Washington International Thurgood Marshall Airport,America/New_York
+BZN,Bozeman Yellowstone International Airport,America/Denver
+CAE,Columbia Metro Airport,America/New_York
+CAK,Akron-Canton Regional Airport,America/New_York
+CDC,Cedar City Regional Airport,America/Denver
+CDV,Merle K (Mudhole) Smith Airport,America/Anchorage
+CHA,Lovell Field,America/New_York
+CHO,Charlottesville-Albemarle Airport,America/New_York
+CHS,Charleston AFB/International Airport,America/New_York
+CID,The Eastern Iowa Airport,America/Chicago
+CIU,Chippewa County International Airport,America/New_York
+CKB,North Central West Virginia Airport,America/New_York
+CLD,Mc Clellan-Palomar Airport,America/Los_Angeles
+CLE,Cleveland-Hopkins International Airport,America/New_York
+CLL,Easterwood Field,America/Chicago
+CLT,Charlotte/Douglas International Airport,America/New_York
+CMH,John Glenn Columbus International Airport,America/New_York
+CMI,University Of Illinois/Willard Airport,America/Chicago
+CMX,Houghton County Memorial Airport,America/New_York
+CNY,Canyonlands Regional Airport,America/Denver
+COD,Yellowstone Regional Airport,America/Denver
+COS,City Of Colorado Springs Municipal Airport,America/Denver
+COU,Columbia Regional Airport,America/Chicago
+CPR,Casper/Natrona County International Airport,America/Denver
+CRP,Corpus Christi International Airport,America/Chicago
+CRW,West Virginia International Yeager Airport,America/New_York
+CSG,Columbus Airport,America/New_York
+CVG,Cincinnati/Northern Kentucky International Airport,America/New_York
+CWA,Central Wisconsin Airport,America/Chicago
+CYS,Cheyenne Regional/Jerry Olson Field,America/Denver
+DAB,Daytona Beach International Airport,America/New_York
+DAL,Dallas Love Field,America/Chicago
+DAY,James M Cox Dayton International Airport,America/New_York
+DCA,Ronald Reagan Washington Ntl Airport,America/New_York
+DDC,Dodge City Regional Airport,America/Chicago
+DEC,Decatur Airport,America/Chicago
+DEN,Denver International Airport,America/Denver
+DFW,Dallas-Fort Worth International Airport,America/Chicago
+DHN,Dothan Regional Airport,America/Chicago
+DIK,Dickinson/Theodore Roosevelt Regional Airport,America/Denver
+DLG,Dillingham Airport,America/Anchorage
+DLH,Duluth International Airport,America/Chicago
+DRO,Durango-La Plata County Airport,America/Denver
+DRT,Del Rio International Airport,America/Chicago
+DSM,Des Moines International Airport,America/Chicago
+DTW,Detroit Metro Wayne County Airport,America/New_York
+DVL,Devils Lake Regional Airport,America/Chicago
+EAR,Kearney Regional Airport,America/Chicago
+EAU,Chippewa Valley Regional Airport,America/Chicago
+ECP,Northwest Florida Beaches International Airport,America/Chicago
+EGE,Eagle County Regional Airport,America/Denver
+EKO,Elko Regional Airport,America/Los_Angeles
+ELM,Elmira/Corning Regional Airport,America/New_York
+ELP,El Paso International Airport,America/Denver
+ERI,Erie International/Tom Ridge Field,America/New_York
+ESC,Delta County Airport,America/New_York
+EUG,Mahlon Sweet Field,America/Los_Angeles
+EVV,Evansville Regional Airport,America/Chicago
+EWN,Coastal Carolina Regional Airport,America/New_York
+EWR,Newark Liberty International Airport,America/New_York
+EYW,Key West International Airport,America/New_York
+FAI,Fairbanks International Airport,America/Anchorage
+FAR,Hector International Airport,America/Chicago
+FAT,Fresno Yosemite International Airport,America/Los_Angeles
+FAY,Fayetteville Regional/Grannis Field,America/New_York
+FCA,Glacier Park International Airport,America/Denver
+FLG,Flagstaff Pulliam Airport,America/Phoenix
+FLL,Fort Lauderdale/Hollywood International Airport,America/New_York
+FMN,Four Corners Regional Airport,America/Denver
+FNT,Bishop International Airport,America/New_York
+FOD,Fort Dodge Regional Airport,America/Chicago
+FSD,Joe Foss Field,America/Chicago
+FSM,Fort Smith Regional Airport,America/Chicago
+FWA,Fort Wayne International Airport,America/New_York
+GCC,Northeast Wyoming Regional Airport,America/Denver
+GCK,Garden City Regional Airport,America/Chicago
+GEG,Spokane International Airport,America/Los_Angeles
+GFK,Grand Forks International Airport,America/Chicago
+GGG,East Texas Regional Airport,America/Chicago
+GJT,Grand Junction Regional Airport,America/Denver
+GNV,Gainesville Regional Airport,America/New_York
+GPT,Gulfport-Biloxi International Airport,America/Chicago
+GRB,Green Bay/Austin Straubel International Airport,America/Chicago
+GRI,Central Nebraska Regional Airport,America/Chicago
+GRK,Robert Gray Army Air Field,America/Chicago
+GRR,Gerald R Ford International Airport,America/New_York
+GSO,Piedmont Triad International Airport,America/New_York
+GSP,Greenville Spartanburg International Airport,America/New_York
+GST,Gustavus Airport,America/Anchorage
+GTF,Great Falls International Airport,America/Denver
+GTR,Golden Triangle Regional Airport,America/Chicago
+GUC,Gunnison-Crested Butte Regional Airport,America/Denver
+GUF,Gulf Shores International/Jack Edwards Field,America/Chicago
+GUM,Guam International Airport,Pacific/Guam
+HDN,Yampa Valley Airport,America/Denver
+HGR,Hagerstown Regional/Richard A Henson Field,America/New_York
+HHH,Hilton Head Airport,America/New_York
+HIB,Range Regional Airport,America/Chicago
+HLN,Helena Regional Airport,America/Denver
+HNL,Daniel K Inouye International Airport,Pacific/Honolulu
+HOB,Lea County Regional Airport,America/Denver
+HOU,William P Hobby Airport,America/Chicago
+HPN,Westchester County Airport,America/New_York
+HRL,Valley International Airport,America/Chicago
+HSV,Huntsville International-Carl T Jones Field,America/Chicago
+HTS,Tri-State/Milton J Ferguson Field,America/New_York
+HYA,Cape Cod Gateway Airport,America/New_York
+HYS,Hays Regional Airport,America/Chicago
+IAD,Washington Dulles International Airport,America/New_York
+IAG,Niagara Falls International Airport,America/New_York
+IAH,George Bush Intcntl/Houston Airport,America/Chicago
+ICT,Wichita Dwight D Eisenhower Ntl Airport,America/Chicago
+IDA,Idaho Falls Regional Airport,America/Boise
+ILM,Wilmington International Airport,America/New_York
+IMT,Ford Airport,America/Chicago
+IND,Indianapolis International Airport,America/New_York
+INL,Falls International/Einarson Field,America/Chicago
+ISP,Long Island Mac Arthur Airport,America/New_York
+ITH,Ithaca Tompkins International Airport,America/New_York
+ITO,Hilo International Airport,Pacific/Honolulu
+JAC,Jackson Hole Airport,America/Denver
+JAN,Jackson-Medgar Wiley Evers International Airport,America/Chicago
+JAX,Jacksonville International Airport,America/New_York
+JFK,John F Kennedy International Airport,America/New_York
+JLN,Joplin Regional Airport,America/Chicago
+JMS,Jamestown Regional Airport,America/Chicago
+JNU,Juneau International Airport,America/Anchorage
+JST,John Murtha Johnstown/Cambria County Airport,America/New_York
+KOA,Ellison Onizuka Kona International At Keahole Airport,Pacific/Honolulu
+KTN,Ketchikan International Airport,America/Anchorage
+LAF,Purdue University Airport,America/New_York
+LAN,Capital Region International Airport,America/Detroit
+LAR,Laramie Regional Airport,America/Denver
+LAS,Harry Reid International Airport,America/Los_Angeles
+LAW,Lawton-Fort Sill Regional Airport,America/Chicago
+LAX,Los Angeles International Airport,America/Los_Angeles
+LBB,Lubbock Preston Smith International Airport,America/Chicago
+LBE,Arnold Palmer Regional Airport,America/New_York
+LBF,North Platte Regional/Lee Bird Field,America/Chicago
+LBL,Liberal Mid-America Regional Airport,America/Chicago
+LCH,Lake Charles Regional Airport,America/Chicago
+LCK,Rickenbacker International Airport,America/New_York
+LEX,Blue Grass Airport,America/New_York
+LFT,Lafayette Regional/Paul Fournet Field,America/Chicago
+LGA,Laguardia Airport,America/New_York
+LGB,Long Beach (Daugherty Field) Airport,America/Los_Angeles
+LIH,Lihue Airport,Pacific/Honolulu
+LIT,Bill And Hillary Clinton Ntl/Adams Field,America/Chicago
+LNK,Lincoln Airport,America/Chicago
+LRD,Laredo International Airport,America/Chicago
+LSE,La Crosse Regional Airport,America/Chicago
+LWS,Lewiston/Nez Perce County Airport,America/Los_Angeles
+MAF,Midland International Air And Space Port Airport,America/Chicago
+MBS,MBS International Airport,America/New_York
+MCI,Kansas City International Airport,America/Chicago
+MCO,Orlando International Airport,America/New_York
+MCW,Mason City Municipal Airport,America/Chicago
+MDT,Harrisburg International Airport,America/New_York
+MDW,Chicago Midway International Airport,America/Chicago
+MEI,Key Field,America/Chicago
+MEM,Frederick W Smith International/Memphis Airport,America/Chicago
+MFE,Mc Allen International Airport,America/Chicago
+MFR,Rogue Valley International/Medford Airport,America/Los_Angeles
+MGM,Montgomery Regional (Dannelly Field) Airport,America/Chicago
+MGW,Morgantown Municipal/Walter L Bill Hart Field,America/New_York
+MHK,Manhattan Regional Airport,America/Chicago
+MHT,Manchester Boston Regional Airport,America/New_York
+MIA,Miami International Airport,America/New_York
+MKE,General Mitchell International Airport,America/Chicago
+MLB,Melbourne Orlando International Airport,America/New_York
+MLI,Quad Cities International Airport,America/Chicago
+MLU,Monroe Regional Airport,America/Chicago
+MOB,Mobile Regional Airport,America/Chicago
+MOT,Minot International Airport,America/Chicago
+MQT,Marquette Sawyer Regional Airport,America/New_York
+MRY,Monterey Regional Airport,America/Los_Angeles
+MSN,Dane County Regional/Truax Field,America/Chicago
+MSO,Missoula Montana Airport,America/Denver
+MSP,Minneapolis-St Paul International/Wold-Chamberlain Airport,America/Chicago
+MSY,Louis Armstrong New Orleans International Airport,America/Chicago
+MTJ,Montrose Regional Airport,America/Denver
+MVY,Martha's Vineyard Airport,America/New_York
+MYR,Myrtle Beach International Airport,America/New_York
+OAJ,Albert J Ellis Airport,America/New_York
+OAK,Oakland San Francisco Bay Airport,America/Los_Angeles
+OGG,Kahului Airport,Pacific/Honolulu
+OKC,Okc Will Rogers International Airport,America/Chicago
+OMA,Eppley Airfield,America/Chicago
+OME,Nome Airport,America/Anchorage
+ONT,Ontario International Airport,America/Los_Angeles
+ORD,Chicago O'Hare International Airport,America/Chicago
+ORF,Norfolk International Airport,America/New_York
+ORH,Worcester Regional Airport,America/New_York
+OTH,Southwest Oregon Regional Airport,America/Los_Angeles
+OTZ,Ralph Wien Memorial Airport,America/Anchorage
+OWB,Owensboro/Daviess County Regional Airport,America/Chicago
+PAE,Seattle Paine Field International Airport,America/Los_Angeles
+PBG,Plattsburgh International Airport,America/New_York
+PBI,Palm Beach International Airport,America/New_York
+PDX,Portland International Airport,America/Los_Angeles
+PGD,Punta Gorda Airport,America/New_York
+PGV,Pitt-Greenville Airport,America/New_York
+PHF,Newport News/Williamsburg International Airport,America/New_York
+PHL,Philadelphia International Airport,America/New_York
+PHX,Phoenix Sky Harbor International Airport,America/Phoenix
+PIA,General Downing - Peoria International Airport,America/Chicago
+PIB,Hattiesburg/Laurel Regional Airport,America/Chicago
+PIE,St Pete-Clearwater International Airport,America/New_York
+PIH,Pocatello Regional Airport,America/Denver
+PIR,Pierre Regional Airport,America/Chicago
+PIT,Pittsburgh International Airport,America/New_York
+PLN,Pellston Regional/Emmet County Airport,America/Detroit
+PNS,Pensacola International Airport,America/Chicago
+PPG,Pago Pago International Airport,Pacific/Pago_Pago
+PQI,Presque Isle International Airport,America/New_York
+PRC,Prescott Regional/Ernest A Love Field,America/Phoenix
+PSC,Tri-Cities Airport,America/Los_Angeles
+PSE,Mercedita Airport,America/Puerto_Rico
+PSG,Petersburg James A Johnson Airport,America/Juneau
+PSM,Portsmouth International At Pease Airport,America/New_York
+PSP,Palm Springs International Airport,America/Los_Angeles
+PUB,Pueblo Memorial Airport,America/Denver
+PVD,Rhode Island Tf Green International Airport,America/New_York
+PVU,Provo Municipal Airport,America/Denver
+PWM,Portland International Jetport Airport,America/New_York
+RAP,Rapid City Regional Airport,America/Denver
+RDD,Redding Regional Airport,America/Los_Angeles
+RDM,Roberts Field/Redmond Municipal Airport,America/Los_Angeles
+RDU,Raleigh-Durham International Airport,America/New_York
+RFD,Chicago/Rockford International Airport,America/Chicago
+RHI,Rhinelander/Oneida County Airport,America/Chicago
+RIC,Richmond International Airport,America/New_York
+RIW,Central Wyoming Regional Airport,America/Denver
+RKS,Southwest Wyoming Regional Airport,America/Denver
+RNO,Reno/Tahoe International Airport,America/Los_Angeles
+ROA,Roanoke/Blacksburg Regional (Woodrum Field) Airport,America/New_York
+ROC,Frederick Douglass/Greater Rochester International Airport,America/New_York
+ROW,Roswell Air Center Airport,America/Denver
+RST,Rochester International Airport,America/Chicago
+RSW,Southwest Florida International Airport,America/New_York
+SAF,Santa Fe Regional Airport,America/Denver
+SAN,San Diego International Airport,America/Los_Angeles
+SAT,San Antonio International Airport,America/Chicago
+SAV,Savannah/Hilton Head International Airport,America/New_York
+SBA,Santa Barbara Municipal Airport,America/Los_Angeles
+SBN,South Bend International Airport,America/Indiana/Indianapolis
+SBP,San Luis Obispo County Regional Airport,America/Los_Angeles
+SCC,Deadhorse Airport,America/Anchorage
+SCE,State College Regional Airport,America/New_York
+SCK,Stockton Metro Airport,America/Los_Angeles
+SDF,Louisville Muhammad Ali International Airport,America/Kentucky/Louisville
+SEA,Seattle-Tacoma International Airport,America/Los_Angeles
+SFB,Orlando Sanford International Airport,America/New_York
+SFO,San Francisco International Airport,America/Los_Angeles
+SGF,Springfield-Branson Ntl Airport,America/Chicago
+SGU,St George Regional Airport,America/Denver
+SHR,Sheridan County Airport,America/Denver
+SHV,Shreveport Regional Airport,America/Chicago
+SIT,Sitka Rocky Gutierrez Airport,America/Anchorage
+SJC,Mineta San Jose International Airport,America/Los_Angeles
+SJT,San Angelo Regional/Mathis Field,America/Chicago
+SJU,Luis Munoz Marin International Airport,America/Puerto_Rico
+SLC,Salt Lake City International Airport,America/Denver
+SLN,Salina Regional Airport,America/Chicago
+SMF,Sacramento International Airport,America/Los_Angeles
+SMX,Santa Maria Pub/Capt G Allan Hancock Field,America/Los_Angeles
+SNA,John Wayne/Orange County Airport,America/Los_Angeles
+SPI,Abraham Lincoln Capital Airport,America/Chicago
+SPN,Francisco C Ada/Saipan International Airport,Pacific/Saipan
+SPS,Sheppard AFB/Wichita Falls Municipal Airport,America/Chicago
+SRQ,Sarasota/Bradenton International Airport,America/New_York
+STC,St Cloud Sky Central Airport,America/Chicago
+STL,St Louis Lambert International Airport,America/Chicago
+STS,Charles M Schulz/Sonoma County Airport,America/Los_Angeles
+STT,Cyril E King Airport,America/St_Thomas
+STX,Henry E Rohlsen Airport,America/St_Thomas
+SUN,Friedman Memorial Airport,America/Denver
+SUX,Sioux Gateway/Brig General Bud Day Field,America/Chicago
+SWF,New York Stewart International Airport,America/New_York
+SWO,Stillwater Regional Airport,America/Chicago
+SYR,Syracuse Hancock International Airport,America/New_York
+TLH,Tallahassee International Airport,America/New_York
+TOL,Eugene F Kranz Toledo Express Airport,America/New_York
+TPA,Tampa International Airport,America/New_York
+TRI,Tri-Cities Airport,America/New_York
+TTN,Trenton Mercer Airport,America/New_York
+TUL,Tulsa International Airport,America/Chicago
+TUS,Tucson International Airport,America/Phoenix
+TVC,Cherry Capital Airport,America/New_York
+TWF,Joslin Field/Magic Valley Regional Airport,America/Boise
+TXK,Texarkana Regional-Webb Field,America/Chicago
+TYR,Tyler Pounds Regional Airport,America/Chicago
+TYS,Mc Ghee Tyson Airport,America/New_York
+USA,Concord-Padgett Regional Airport,America/New_York
+VCT,Victoria Regional Airport,America/Chicago
+VEL,Vernal Regional Airport,America/Denver
+VLD,Valdosta Regional Airport,America/New_York
+VPS,Eglin AFB/Destin-Ft Walton Beach Airport,America/Chicago
+VRB,Vero Beach Regional Airport,America/New_York
+WRG,Wrangell Airport,America/Anchorage
+WYS,Yellowstone Airport,America/Denver
+XNA,Northwest Arkansas Ntl Airport,America/Chicago
+XWA,Williston Basin International Airport,America/Chicago
+YAK,Yakutat Airport,America/Anchorage
+YUM,Yuma MCAS/Yuma International Airport,America/Phoenix
