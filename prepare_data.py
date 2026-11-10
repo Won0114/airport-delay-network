@@ -1,370 +1,376 @@
-"""
-Data preparation pipeline: monthly BTS files -> analysis-ready tables.
+"""Validate, clean, convert to UTC, and aggregate BTS monthly data.
 
-Run once after download_bts.py (and verify_data.py):
-    python prepare_data.py
-
-Steps
-  1. Pick airports: FAA 40 list + N_TOP busiest (config.py).
-  2. For every month: clip extreme delays, convert scheduled departure hours to UTC,
-     aggregate to airport-hour, and build aircraft-rotation links (same tail number).
-  3. Build a complete hourly UTC grid per airport, keep operating hours only,
-     require MIN_FLIGHTS per hour, fill short gaps, and compute missing shares.
-  4. Remove the daily/weekly cycle: subtract each airport's mean for the same
-     local weekday x hour  ->  *_resid columns (use these for Granger tests).
-  5. Label each day: event / weather / normal.
-  6. Save tables, a one-month sample, and a text report.
-
-Outputs in data/processed/  (see README.md for column descriptions)
-  airport_hourly.parquet   airports.csv   calendar.csv
-  aircraft_links/ (one file per month)    sample/   prepare_report.txt
+Run without arguments for January 2023 through December 2025.
+Use --start and --end for a smaller, inclusive month range.
 """
 
-import time
+from pathlib import Path
+import argparse
+import zipfile
 
-import numpy as np
+import airportsdata
 import pandas as pd
 
-import config as C
+BASE_DIR = Path(__file__).resolve().parent
 
-FLIGHT_COLS = [
-    "FlightDate", "Reporting_Airline", "Tail_Number", "Origin", "Dest",
-    "CRSDepTime", "CRSArrTime", "DepDelay", "DepDel15", "ArrDelay",
-    "Cancelled", "Diverted",
-    "CarrierDelay", "WeatherDelay", "NASDelay", "SecurityDelay", "LateAircraftDelay",
+FLIGHT_KEY = [
+    "FlightDate",
+    "Reporting_Airline",
+    "Flight_Number_Reporting_Airline",
+    "Origin",
+    "CRSDepTime",
 ]
-CAUSES = ["CarrierDelay", "WeatherDelay", "NASDelay", "SecurityDelay", "LateAircraftDelay"]
+
+REQUIRED_COLUMNS = [
+    *FLIGHT_KEY,
+    "Dest",
+    "Tail_Number",
+    "CRSArrTime",
+    "CRSElapsedTime",
+    "DepDelay",
+    "ArrDelay",
+    "DepDel15",
+    "Cancelled",
+    "Diverted",
+]
 
 
-# --------------------------------------------------------------------------- I/O
-def month_files():
-    files = sorted(C.RAW_DIR.glob("ontime_*.parquet"))
-    keep = []
-    for f in files:
-        y, m = f.stem.split("_")[1:3]
-        if C.START <= f"{y}-{m}" <= C.END:
-            keep.append(f)
-    if not keep:
-        raise SystemExit(f"No monthly files for {C.START}..{C.END} in {C.RAW_DIR}")
-    return keep
+def audit_month(df, year, month):
+    missing_columns = sorted(set(REQUIRED_COLUMNS) - set(df.columns))
+    if missing_columns:
+        raise ValueError(f"Missing columns: {missing_columns}")
 
+    dates = pd.to_datetime(df["FlightDate"], errors="coerce")
+    expected_dates = pd.date_range(
+        f"{year}-{month:02d}-01",
+        periods=pd.Period(f"{year}-{month:02d}").days_in_month,
+        freq="D",
+    )
+    actual_dates = pd.DatetimeIndex(dates.dropna().dt.normalize().unique())
 
-def read_month(path, columns):
-    return pd.read_parquet(path, columns=columns)
+    completed = df.loc[
+        df["Cancelled"].eq(0) & df["Diverted"].eq(0)
+    ]
 
+    unnamed = [
+        column for column in df.columns
+        if column.startswith("Unnamed:")
+    ]
 
-def save(df, path):
-    df.to_parquet(path, index=False)
+    result = {
+        "month": f"{year}-{month:02d}",
+        "status": "ok",
+        "rows": len(df),
+        "columns": len(df.columns),
+        "missing_calendar_days": len(expected_dates.difference(actual_dates)),
+        "invalid_or_missing_dates": int(dates.isna().sum()),
+        "rows_outside_month": int(
+            (
+                dates.notna()
+                & (
+                    dates.dt.year.ne(year)
+                    | dates.dt.month.ne(month)
+                )
+            ).sum()
+        ),
+        "exact_duplicate_rows": int(df.duplicated().sum()),
+        "repeated_flight_keys": int(
+            df.duplicated(subset=FLIGHT_KEY).sum()
+        ),
+        "invalid_cancelled_flags": int(
+            (~df["Cancelled"].isin([0, 1])).sum()
+        ),
+        "invalid_diverted_flags": int(
+            (~df["Diverted"].isin([0, 1])).sum()
+        ),
+        "cancelled_flights": int(df["Cancelled"].eq(1).sum()),
+        "diverted_flights": int(df["Diverted"].eq(1).sum()),
+        "completed_nondiverted_flights": len(completed),
+        "missing_tail_number": int(df["Tail_Number"].isna().sum()),
+        "missing_origin": int(df["Origin"].isna().sum()),
+        "missing_dest": int(df["Dest"].isna().sum()),
+        "missing_scheduled_departure": int(df["CRSDepTime"].isna().sum()),
+        "missing_scheduled_arrival": int(df["CRSArrTime"].isna().sum()),
+        "missing_scheduled_elapsed": int(df["CRSElapsedTime"].isna().sum()),
+        "missing_departure_delay": int(df["DepDelay"].isna().sum()),
+        "missing_arrival_delay": int(df["ArrDelay"].isna().sum()),
+        "completed_missing_departure_delay": int(
+            completed["DepDelay"].isna().sum()
+        ),
+        "completed_missing_arrival_delay": int(
+            completed["ArrDelay"].isna().sum()
+        ),
+        "unnamed_columns": len(unnamed),
+        "unnamed_nonmissing_cells": int(
+            df[unnamed].notna().sum().sum()
+        ),
+    }
 
+    # These checks identify records that need review.
+    # Expected missing values, such as missing aircraft IDs, remain descriptive.
+    review_checks = [
+        "missing_calendar_days",
+        "invalid_or_missing_dates",
+        "rows_outside_month",
+        "exact_duplicate_rows",
+        "repeated_flight_keys",
+        "invalid_cancelled_flags",
+        "invalid_diverted_flags",
+        "missing_origin",
+        "missing_dest",
+        "missing_scheduled_departure",
+        "missing_scheduled_arrival",
+        "missing_scheduled_elapsed",
+        "completed_missing_departure_delay",
+        "completed_missing_arrival_delay",
+        "unnamed_nonmissing_cells",
+    ]
 
-def load_timezones():
-    try:
-        import airportsdata
-    except ImportError:
-        raise SystemExit("Please install airportsdata first:  pip install airportsdata")
-    tz = {k: v["tz"] for k, v in airportsdata.load("IATA").items() if v.get("tz")}
-    tz.update(getattr(C, "TZ_OVERRIDES", {}))
-    return tz
+    if len(df) == 0 or any(result[key] > 0 for key in review_checks):
+        result["status"] = "review"
 
+    return result
 
-# ------------------------------------------------------------------ step 1: airports
-def choose_airports(files, tz_map):
-    counts = None
-    for f in files:
-        c = read_month(f, ["Origin"])["Origin"].value_counts()
-        counts = c if counts is None else counts.add(c, fill_value=0)
-    counts = counts.sort_values(ascending=False).astype(int)
-    ap = pd.DataFrame({"airport": counts.index.astype(str), "departures": counts.values})
-    ap["volume_rank"] = np.arange(1, len(ap) + 1)
-    ap["faa40"] = ap["airport"].isin(C.FAA40)
-    ap["top_n"] = ap["volume_rank"] <= C.N_TOP
-    ap = ap[ap["faa40"] | ap["top_n"]].copy()
-    ap["tz"] = ap["airport"].map(tz_map)
-    absent = sorted(set(C.FAA40) - set(counts.index))
-    return ap.reset_index(drop=True), absent
+def check_time(series):
+    numeric = pd.to_numeric(series, errors="coerce")
 
+    # Accept whole-number HHMM values and the special midnight value 2400.
+    ordinary = (
+        numeric.ge(0)
+        & numeric.lt(2400)
+        & numeric.mod(1).eq(0)
+        & numeric.mod(100).lt(60)
+    )
+    valid = ordinary | numeric.eq(2400)
+    invalid = series.notna() & ~valid
 
-# ------------------------------------------------------------- step 2: per month
-def hhmm_minutes(x):
-    x = x.astype("float")
-    return (x // 100 % 24) * 60 + x % 100
+    return {
+        "missing": int(series.isna().sum()),
+        "invalid": int(invalid.sum()),
+        "midnight_0000": int(numeric.eq(0).sum()),
+        "midnight_2400": int(numeric.eq(2400).sum()),
+    }, invalid
 
-
-def localize_to_utc(ts_local, airports, tz_map):
-    """Local naive timestamps -> naive UTC, per airport time zone."""
-    out = pd.Series(pd.NaT, index=ts_local.index, dtype="datetime64[ns]")
-    for ap, idx in airports.groupby(airports).groups.items():
-        tz = tz_map.get(ap)
-        if tz is None:
-            continue
-        loc = ts_local.loc[idx].dt.tz_localize(tz, ambiguous="NaT", nonexistent="shift_forward")
-        out.loc[idx] = loc.dt.tz_convert("UTC").dt.tz_localize(None).astype("datetime64[ns]")
-    return out
-
-
-def prepare_flights(df, tz_map):
+def clean_flights(df):
     df = df.copy()
-    df["FlightDate"] = pd.to_datetime(df["FlightDate"])
-    df["dep_min"] = hhmm_minutes(df["CRSDepTime"])
-    df["arr_min"] = hhmm_minutes(df["CRSArrTime"])
-    df["ts_local"] = df["FlightDate"] + pd.to_timedelta((df["dep_min"] // 60) * 60, unit="m")
-    df["ts_utc"] = localize_to_utc(df["ts_local"], df["Origin"], tz_map)
-    df["flown"] = (df["Cancelled"] == 0) & (df["Diverted"] == 0)
-    df["dep_delay_clip"] = df["DepDelay"].clip(*C.DELAY_CLIP)
+    original_rows = len(df)
+
+    # Remove only unnamed columns that are entirely empty.
+    empty_columns = [
+        column for column in df.columns
+        if column.startswith("Unnamed:")
+        and df[column].isna().all()
+    ]
+    df = df.drop(columns=empty_columns)
+
+    # Preserve original values and add quality flags.
+    elapsed = pd.to_numeric(df["CRSElapsedTime"], errors="coerce")
+
+    df["flag_elapsed_missing"] = df["CRSElapsedTime"].isna()
+    df["flag_elapsed_invalid"] = (
+        df["CRSElapsedTime"].notna()
+        & (elapsed.isna() | elapsed.le(0))
+    )
+    df["flag_tail_missing"] = df["Tail_Number"].isna()
+
+    completed = df["Cancelled"].eq(0) & df["Diverted"].eq(0)
+
+    df["flag_completed_dep_delay_missing"] = (
+        completed & df["DepDelay"].isna()
+    )
+    df["flag_completed_arr_delay_missing"] = (
+        completed & df["ArrDelay"].isna()
+    )
+
     return df
 
 
-def hourly_counts(df, airports):
-    d = df[df["Origin"].isin(airports) & df["ts_utc"].notna()]
-    keys = ["Origin", "ts_utc"]
-    g_all = d.groupby(keys)
-    f = d[d["flown"]]
-    g = f.groupby(keys)
-    h = pd.DataFrame({"n_sched": g_all.size(), "n_cancelled": g_all["Cancelled"].sum()})
-    h["n_flown"] = g.size()
-    h["mean_dep_delay_raw"] = g["DepDelay"].mean()
-    h["mean_dep_delay"] = g["dep_delay_clip"].mean()
-    h["p_del15"] = g["DepDel15"].mean()
-    for c in CAUSES:
-        h["sum_" + c] = g[c].sum()
-    return h.reset_index()
+def add_utc(df, timezone_map):
+    df["origin_timezone"] = df["Origin"].map(timezone_map)
 
+    if df["origin_timezone"].isna().any():
+        raise ValueError("Some origin airports have no timezone.")
 
-def aircraft_links(df):
-    d = df[df["flown"] & df["Tail_Number"].notna()]
-    d = d.sort_values(["Tail_Number", "FlightDate", "dep_min"])
-    prev = d.groupby(["Tail_Number", "FlightDate"]).shift(1)
-    ok = prev["Origin"].notna() & (prev["Dest"] == d["Origin"])
-    cur, prv = d[ok], prev[ok]
-    return pd.DataFrame({
-        "FlightDate": cur["FlightDate"].values,
-        "ts_utc": cur["ts_utc"].values,               # departure hour of the 2nd leg
-        "Reporting_Airline": cur["Reporting_Airline"].values,
-        "Tail_Number": cur["Tail_Number"].values,
-        "prev_origin": prv["Origin"].values,          # inbound aircraft came from here
-        "airport": cur["Origin"].values,              # turnaround airport
-        "next_dest": cur["Dest"].values,
-        "prev_arr_delay": prv["ArrDelay"].values,
-        "dep_delay": cur["dep_delay_clip"].values,
-        "late_aircraft_delay": cur["LateAircraftDelay"].fillna(0).values,
-        "sched_turn_min": (cur["dep_min"] - prv["arr_min"]).values,
-    })
+    dates = pd.to_datetime(df["FlightDate"], errors="raise")
+    hhmm = pd.to_numeric(df["CRSDepTime"], errors="raise")
 
+    # Preserve 2400 records pending confirmation of the date convention.
+    df["flag_dep_2400_pending"] = hhmm.eq(2400)
 
-def daily_stats(df):
-    g = df.groupby("FlightDate")
-    f = df[df["flown"]].groupby("FlightDate")
-    return pd.DataFrame({
-        "n_flights": g.size(),
-        "cancel_rate": g["Cancelled"].mean(),
-        "mean_dep_delay": f["dep_delay_clip"].mean(),
-        "weather_min_per_flight": f["WeatherDelay"].sum() / f.size(),
-        "nas_min_per_flight": f["NASDelay"].sum() / f.size(),
-    })
-
-
-# ------------------------------------------------- step 3+4: grid, clean, seasonal
-def fill_short_gaps(df, value, group_cols, max_gap):
-    """Linear interpolation of gaps of <= max_gap rows inside each group (vectorized)."""
-    d = df
-    pos = d.groupby(group_cols).cumcount()
-    known = d[value].notna()
-    kpos = pos.where(known)
-    kval = d[value].where(known)
-    grp = [d[c] for c in group_cols]
-    prev_pos = kpos.groupby(grp).ffill()
-    next_pos = kpos.groupby(grp).bfill()
-    prev_val = kval.groupby(grp).ffill()
-    next_val = kval.groupby(grp).bfill()
-    gap = next_pos - prev_pos - 1
-    can = (~known) & prev_pos.notna() & next_pos.notna() & (gap <= max_gap)
-    interp = prev_val + (next_val - prev_val) * (pos - prev_pos) / (next_pos - prev_pos)
-    filled = d[value].where(~can, interp)
-    return filled, can
-
-
-def build_grid(hourly, airports_df):
-    start = pd.Timestamp(C.START + "-01")
-    end = pd.Timestamp(C.END + "-01") + pd.offsets.MonthEnd(1) + pd.Timedelta(hours=23)
-    # pad by a day on each side so local operating hours at the edges are complete
-    idx = pd.date_range(start - pd.Timedelta(days=1), end + pd.Timedelta(days=1), freq="h")
-    parts = []
-    for _, row in airports_df.iterrows():
-        g = pd.DataFrame({"Origin": row["airport"], "ts_utc": idx})
-        loc = g["ts_utc"].dt.tz_localize("UTC").dt.tz_convert(row["tz"]).dt.tz_localize(None)
-        g["ts_local"] = loc
-        parts.append(g)
-    grid = pd.concat(parts, ignore_index=True)
-    grid = grid[(grid["ts_local"] >= start) & (grid["ts_local"] <= end)]
-    grid = grid.merge(hourly, on=["Origin", "ts_utc"], how="left")
-    for c in ["n_sched", "n_flown", "n_cancelled"]:
-        grid[c] = grid[c].fillna(0).astype(int)
-    grid["local_date"] = grid["ts_local"].dt.normalize()
-    grid["local_hour"] = grid["ts_local"].dt.hour
-    grid["weekday"] = grid["ts_local"].dt.dayofweek
-    lo, hi = C.OP_HOURS_LOCAL
-    grid["op_hour"] = grid["local_hour"].between(lo, hi - 1)
-    return grid.sort_values(["Origin", "ts_utc"]).reset_index(drop=True)
-
-
-def clean_series(grid):
-    ok = grid["op_hour"] & (grid["n_flown"] >= C.MIN_FLIGHTS)
-    grid["observed"] = ok
-    for src, dst in [("mean_dep_delay", "delay"), ("p_del15", "p15")]:
-        grid[dst] = grid[src].where(ok)
-    op = grid["op_hour"]
-    sub = grid.loc[op, ["Origin", "local_date", "delay", "p15"]]
-    for col in ["delay", "p15"]:
-        filled, was_filled = fill_short_gaps(sub, col, ["Origin", "local_date"], C.MAX_GAP_INTERP)
-        grid.loc[op, col] = filled
-        if col == "delay":
-            grid["filled"] = False
-            grid.loc[op, "filled"] = was_filled
-    # seasonal adjustment: subtract airport x weekday x hour mean
-    keys = ["Origin", "weekday", "local_hour"]
-    for col in ["delay", "p15"]:
-        mean = grid.groupby(keys)[col].transform("mean")
-        grid[col + "_resid"] = grid[col] - mean
-    return grid
-
-
-def missing_shares(grid):
-    op = grid[grid["op_hour"]]
-    s = op.groupby("Origin").agg(
-        op_hours=("delay", "size"),
-        missing_share=("delay", lambda x: x.isna().mean()),
-        filled_share=("filled", "mean"),
-        mean_flights_per_op_hour=("n_flown", "mean"),
+    minutes = (hhmm // 100) * 60 + hhmm % 100
+    local = dates + pd.to_timedelta(
+        minutes.where(~df["flag_dep_2400_pending"]), unit="min"
     )
-    return s.reset_index().rename(columns={"Origin": "airport"})
+
+    df["scheduled_dep_local"] = local
+    df["scheduled_dep_utc"] = pd.Series(
+        pd.NaT, index=df.index, dtype="datetime64[ns, UTC]"
+    )
+
+    # Leave ambiguous or nonexistent daylight-saving times unresolved.
+    for timezone, indices in df.groupby("origin_timezone").groups.items():
+        localized = local.loc[indices].dt.tz_localize(
+            timezone,
+            ambiguous="NaT",
+            nonexistent="NaT",
+        )
+        df.loc[indices, "scheduled_dep_utc"] = (
+            localized.dt.tz_convert("UTC")
+        )
+
+    df["flag_dep_dst_unresolved"] = (
+        local.notna() & df["scheduled_dep_utc"].isna()
+    )
+
+    return df
 
 
-# ----------------------------------------------------------------- step 5: calendar
-def build_calendar(daily):
-    cal = daily.sort_index().reset_index().rename(columns={"FlightDate": "date"})
-    cal["event"] = ""
-    for name, (a, b) in C.EVENTS.items():
-        m = cal["date"].between(pd.Timestamp(a), pd.Timestamp(b)) & (cal["event"] == "")
-        cal.loc[m, "event"] = name
-    thr = cal["weather_min_per_flight"].quantile(C.WEATHER_QUANTILE)
-    cal["weather_day"] = cal["weather_min_per_flight"] >= thr
-    cal["label"] = np.where(cal["event"] != "", "event",
-                            np.where(cal["weather_day"], "weather", "normal"))
-    return cal, thr
+def build_hourly(df):
+    unresolved_count = int(df["scheduled_dep_utc"].isna().sum())
+
+    # Keep unresolved records in the flight-level data.
+    valid = df.loc[df["scheduled_dep_utc"].notna()].copy()
+    valid["hour_utc"] = valid["scheduled_dep_utc"].dt.floor("h")
+
+    completed = valid["Cancelled"].eq(0) & valid["Diverted"].eq(0)
+    valid["completed"] = completed.astype(int)
+
+    # Use completed, non-diverted flights for delay statistics.
+    valid["dep_delay_value"] = valid["DepDelay"].where(completed)
+    valid["arr_delay_value"] = valid["ArrDelay"].where(completed)
+    valid["dep_del15_value"] = valid["DepDel15"].where(completed)
+
+    hourly = (
+        valid.groupby(["Origin", "hour_utc"], as_index=False)
+        .agg(
+            n_scheduled=("Cancelled", "size"),
+            n_cancelled=("Cancelled", "sum"),
+            n_diverted=("Diverted", "sum"),
+            n_completed=("completed", "sum"),
+            n_dep_delay_valid=("dep_delay_value", "count"),
+            n_arr_delay_valid=("arr_delay_value", "count"),
+            n_dep_del15_valid=("dep_del15_value", "count"),
+            mean_dep_delay=("dep_delay_value", "mean"),
+            median_dep_delay=("dep_delay_value", "median"),
+            mean_arr_delay=("arr_delay_value", "mean"),
+            share_dep_del15=("dep_del15_value", "mean"),
+        )
+        .sort_values(["Origin", "hour_utc"])
+        .reset_index(drop=True)
+    )
+
+    hourly["cancel_rate"] = (
+        hourly["n_cancelled"] / hourly["n_scheduled"]
+    )
+
+    # Verify that every timestamped flight was counted once.
+    if hourly["n_scheduled"].sum() != len(valid):
+        raise ValueError("Scheduled flight counts do not match.")
+
+    if hourly.duplicated(["Origin", "hour_utc"]).any():
+        raise ValueError("Duplicate airport-hour rows found.")
+
+    return hourly
 
 
-# --------------------------------------------------------------------------- main
+def months(start, end):
+    first = pd.Period(start, freq="M")
+    last = pd.Period(end, freq="M")
+    if first > last:
+        raise ValueError("Start month must not follow end month.")
+    return list(pd.period_range(first, last, freq="M"))
+
+
+def read_month(path):
+    with zipfile.ZipFile(path) as archive:
+        names = [n for n in archive.namelist() if n.lower().endswith(".csv")]
+        if len(names) != 1:
+            raise ValueError(f"Expected one CSV in {path.name}, found {len(names)}.")
+        with archive.open(names[0]) as source:
+            return pd.read_csv(source, encoding="latin-1", low_memory=False)
+
+
+def run(data_dir, start, end):
+    period = months(start, end)
+    paths = [data_dir / "raw" / f"bts_{p.year}_{p.month:02d}.zip" for p in period]
+    missing = [p.name for p in paths if not p.is_file()]
+    if missing:
+        raise FileNotFoundError(f"Missing monthly files: {missing}")
+
+    airport_info = airportsdata.load("IATA")
+    timezone_map = {code: info.get("tz") for code, info in airport_info.items()}
+    timezone_map["PBI"] = "America/New_York"
+
+    flights_dir = data_dir / "processed" / "flights_utc"
+    hourly_dir = data_dir / "processed" / "hourly"
+    report_dir = data_dir / "reports" / "pipeline"
+    for directory in (flights_dir, hourly_dir, report_dir):
+        directory.mkdir(parents=True, exist_ok=True)
+
+    audits, utc_summary, exceptions = [], [], []
+    for p, path in zip(period, paths):
+        raw = read_month(path)
+        audit = audit_month(raw, p.year, p.month)
+        time_invalid = 0
+        for column in ("CRSDepTime", "CRSArrTime"):
+            counts, _ = check_time(raw[column])
+            for key, value in counts.items():
+                audit[f"{column}_{key}"] = value
+            time_invalid += counts["invalid"]
+        audits.append(audit)
+        pd.DataFrame(audits).to_csv(report_dir / "monthly_audit.csv", index=False)
+
+        # Stop rather than silently count ambiguous duplicates or corrupt records.
+        blocking = [
+            "missing_calendar_days", "invalid_or_missing_dates", "rows_outside_month",
+            "repeated_flight_keys", "invalid_cancelled_flags", "invalid_diverted_flags",
+            "missing_origin", "missing_dest", "missing_scheduled_departure",
+            "missing_scheduled_arrival",
+        ]
+        if not len(raw) or time_invalid or any(audit[k] for k in blocking):
+            raise ValueError(f"{p}: validation failed. See {report_dir / 'monthly_audit.csv'}")
+
+        flights = add_utc(clean_flights(raw), timezone_map)
+        hourly = build_hourly(flights)
+        if len(flights) != len(raw):
+            raise ValueError(f"{p}: flight rows were lost.")
+        unknown = flights["scheduled_dep_utc"].isna()
+        flagged = flights["flag_dep_2400_pending"] | flights["flag_dep_dst_unresolved"]
+        if not unknown.equals(flagged):
+            raise ValueError(f"{p}: unexplained UTC status.")
+
+        flights.to_parquet(flights_dir / f"flights_{p.year}_{p.month:02d}.parquet", index=False)
+        hourly.to_parquet(hourly_dir / f"airport_hourly_{p.year}_{p.month:02d}.parquet", index=False)
+        columns = [
+            "FlightDate", "Reporting_Airline", "Flight_Number_Reporting_Airline",
+            "Origin", "Dest", "CRSDepTime", "origin_timezone", "scheduled_dep_utc",
+            "flag_dep_2400_pending", "flag_dep_dst_unresolved",
+        ]
+        exceptional = flights.loc[unknown, columns].copy()
+        exceptional["source_file"] = f"flights_{p.year}_{p.month:02d}.parquet"
+        exceptions.append(exceptional)
+        utc_summary.append({
+            "month": str(p), "rows": len(flights), "utc_available": int((~unknown).sum()),
+            "pending_2400": int(flights["flag_dep_2400_pending"].sum()),
+            "unresolved_dst": int(flights["flag_dep_dst_unresolved"].sum()),
+            "airport_hours": len(hourly),
+        })
+        print(f"{p}: {len(flights):,} flights, {len(hourly):,} airport-hours, "
+              f"{unknown.sum():,} unresolved timestamps", flush=True)
+
+    # Reports describe this invocation's requested range, not older output files.
+    pd.DataFrame(utc_summary).to_csv(report_dir / "utc_summary.csv", index=False)
+    pd.concat(exceptions, ignore_index=True).to_csv(report_dir / "utc_exceptions.csv", index=False)
+    print(f"Completed {len(period)} months. Reports: {report_dir}", flush=True)
+
+
 def main():
-    t0 = time.time()
-    C.PROC_DIR.mkdir(parents=True, exist_ok=True)
-    C.SAMPLE_DIR.mkdir(parents=True, exist_ok=True)
-    tz_map = load_timezones()
-    files = month_files()
-    print(f"{len(files)} monthly files, {C.START} to {C.END}")
-
-    airports, absent = choose_airports(files, tz_map)
-    no_tz = airports.loc[airports["tz"].isna(), "airport"].tolist()
-    airports = airports[airports["tz"].notna()].reset_index(drop=True)
-    ap_set = set(airports["airport"])
-    print(f"Candidate airports: {len(airports)} (FAA list not in BTS data: {absent})")
-
-    # aircraft links are large -> one file per month in a folder (read the folder later)
-    link_dir = C.PROC_DIR / "aircraft_links"
-    link_dir.mkdir(parents=True, exist_ok=True)
-    hourly_parts, daily_parts = [], []
-    n_links = n_links_late = 0
-    for f in files:
-        df = prepare_flights(read_month(f, FLIGHT_COLS), tz_map)
-        hourly_parts.append(hourly_counts(df, ap_set))
-        daily_parts.append(daily_stats(df))
-        links = aircraft_links(df)
-        save(links, link_dir / f.name.replace("ontime_", "links_"))
-        n_links += len(links)
-        n_links_late += int((links["late_aircraft_delay"] > 0).sum())
-        if f.stem.endswith("2025_05"):
-            save(links, C.SAMPLE_DIR / "aircraft_links_2025_05.parquet")
-        print(f"  {f.name}: {len(df):,} flights, {len(links):,} aircraft links")
-
-    hourly = pd.concat(hourly_parts, ignore_index=True)
-    dup = hourly.duplicated(["Origin", "ts_utc"])
-    if dup.any():  # should not happen: local hour -> UTC hour is one-to-one
-        print(f"  warning: dropping {dup.sum()} duplicated airport-hours")
-        hourly = hourly[~dup]
-    daily = pd.concat(daily_parts)
-
-    print("Building hourly grid and cleaning series...")
-    grid = clean_series(build_grid(hourly, airports))
-
-    miss = missing_shares(grid)
-    airports = airports.merge(miss, on="airport", how="left")
-    too_missing = airports["missing_share"] > C.MAX_MISSING_SHARE
-    too_filled = airports["filled_share"] > C.MAX_FILLED_SHARE
-    airports["included"] = ~too_missing & ~too_filled
-    airports["exclude_reason"] = np.select(
-        [too_missing & too_filled, too_missing, too_filled],
-        [f"missing_share > {C.MAX_MISSING_SHARE} and filled_share > {C.MAX_FILLED_SHARE}",
-         f"missing_share > {C.MAX_MISSING_SHARE}", f"filled_share > {C.MAX_FILLED_SHARE}"],
-        default="")
-    keep = set(airports.loc[airports["included"], "airport"])
-    grid["included"] = grid["Origin"].isin(keep)
-
-    cal, thr = build_calendar(daily)
-
-    # ---- save
-    save(grid, C.PROC_DIR / "airport_hourly.parquet")
-    airports.to_csv(C.PROC_DIR / "airports.csv", index=False)
-    cal.to_csv(C.PROC_DIR / "calendar.csv", index=False)
-
-    s_mask = (grid["ts_local"] >= "2025-05-01") & (grid["ts_local"] < "2025-06-01")
-    save(grid[s_mask], C.SAMPLE_DIR / "airport_hourly_2025_05.parquet")
-
-    # ---- report
-    lines = [
-        f"Prepared {pd.Timestamp.now():%Y-%m-%d %H:%M} | period {C.START}..{C.END}",
-        f"Rules: clip {C.DELAY_CLIP} min, operating hours {C.OP_HOURS_LOCAL} local, "
-        f">= {C.MIN_FLIGHTS} flights/hour, fill gaps <= {C.MAX_GAP_INTERP} h, "
-        f"drop airports with missing share > {C.MAX_MISSING_SHARE} or filled share > {C.MAX_FILLED_SHARE}",
-        "",
-        f"Airports: {len(airports)} candidates, {len(keep)} included",
-        f"  FAA list airports not in BTS data: {absent}",
-        f"  airports without time zone (dropped): {no_tz}",
-        "  excluded:",
-        airports.loc[~airports["included"], ["airport", "faa40", "exclude_reason"]].to_string(index=False),
-        "",
-        "Hourly table (operating hours of included airports):",
-    ]
-    op_inc = grid[grid["op_hour"] & grid["included"]]
-    lines += [
-        f"  rows: {len(op_inc):,}",
-        f"  observed directly: {op_inc['observed'].mean():.1%}",
-        f"  filled by interpolation: {op_inc['filled'].mean():.1%}",
-        f"  still missing: {op_inc['delay'].isna().mean():.1%}",
-        f"  hours where clipping changed the mean: "
-        f"{((op_inc['mean_dep_delay_raw'] - op_inc['mean_dep_delay']).abs() > 1e-9).mean():.2%}",
-        "",
-        f"Aircraft links: {n_links:,}; with late-aircraft delay > 0: "
-        f"{n_links_late / max(n_links, 1):.1%}",
-        "",
-        f"Calendar: weather-day threshold = {thr:.2f} weather-delay min per flight",
-        cal["label"].value_counts().to_string(),
-        "",
-        "Event days:",
-        cal[cal["event"] != ""].groupby("event")["date"].agg(["min", "max", "count"]).to_string(),
-        "",
-        "Lowest-coverage included airports:",
-        airports[airports["included"]].sort_values("missing_share", ascending=False)
-        .head(10)[["airport", "volume_rank", "faa40", "missing_share", "filled_share"]].to_string(index=False),
-        "",
-        "All candidate airports by missing share (use this to judge the thresholds):",
-        airports.sort_values("missing_share")[
-            ["airport", "volume_rank", "faa40", "mean_flights_per_op_hour", "missing_share",
-             "filled_share", "included"]
-        ].round(3).to_string(index=False),
-    ]
-    report = "\n".join(lines)
-    (C.PROC_DIR / "prepare_report.txt").write_text(report, encoding="utf-8")
-    print("\n" + report)
-    print(f"\nDone in {time.time() - t0:.0f}s. Outputs in {C.PROC_DIR}")
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--start", default="2023-01", help="First month, YYYY-MM")
+    parser.add_argument("--end", default="2025-12", help="Last month, YYYY-MM")
+    parser.add_argument("--data-dir", type=Path, default=BASE_DIR)
+    args = parser.parse_args()
+    run(args.data_dir.resolve(), args.start, args.end)
 
 
 if __name__ == "__main__":

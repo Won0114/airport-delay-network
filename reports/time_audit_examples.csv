@@ -1,9 +1,0 @@
-﻿FlightDate,Reporting_Airline,Flight_Number_Reporting_Airline,Origin,Dest,CRSDepTime,CRSArrTime,CRSElapsedTime,issue
-2023-03-23,YX,5784,JFK,PWM,2240,2235,-5.0,Invalid CRSElapsedTime
-2023-12-14,OO,3285,DFW,GCK,1353,921,-272.0,Invalid CRSElapsedTime
-2024-03-27,WN,336,LAS,RNO,1840,1600,-160.0,Invalid CRSElapsedTime
-2025-11-19,OO,3574,DTW,LEX,1053,953,-60.0,Invalid CRSElapsedTime
-2025-11-20,WN,32,HOU,DAL,1635,1510,-85.0,Invalid CRSElapsedTime
-2025-11-17,WN,1556,LAS,BUR,1724,1545,-99.0,Invalid CRSElapsedTime
-2025-11-17,WN,3526,LAS,BUR,1802,1655,-67.0,Invalid CRSElapsedTime
-2025-12-21,WN,575,HOU,HRL,56,2355,-61.0,Invalid CRSElapsedTime

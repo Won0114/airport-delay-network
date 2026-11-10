@@ -1,14 +1,16 @@
-# Python virtual environment
+# Local environments and secrets
 .venv/
+.env
 
-# Downloaded and generated data
+# Original data, generated tables, and reports
 raw/
 processed/
+reports/
 *.parquet
+
+# Local backups and validation scratch files
+.local_backup/
 
 # Python cache
 __pycache__/
 *.pyc
-
-# Local secrets
-.env
