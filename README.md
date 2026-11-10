@@ -1,93 +1,208 @@
-# ELEC 573: BTS data pipeline
+# ELEC 573 — Airport Delay Data Pipeline
 
-Study period: January 2023 through December 2025.
+**Wonhyeok Choi's data preparation branch:** `wonhyeok/data-pipeline`
 
-## Run
+This branch downloads and prepares the **2023–2025 BTS Reporting Carrier On-Time
+Performance data** for our airport-delay project. It provides cleaned flight
+records and a complete airport-hour table for the network analysis team.
 
-From this folder in PowerShell, after creating `.venv`:
+**Status: data preparation is complete for the current dataset.** Network building,
+Granger tests, airport influence rankings, and forecasting are separate tasks.
+The original team implementation remains on the shared `main` branch.
+
+## 1. What has been completed?
+
+| Item | Verified result |
+|---|---:|
+| Study period | January 2023–December 2025 |
+| Monthly source files | 36 |
+| Flight records preserved | 20,928,579 |
+| Flights with a resolved UTC departure time | 20,928,559 |
+| Flights with unresolved UTC departure times | 20 |
+| Candidate airports | 61 |
+| Known-UTC flights at candidate airports | 17,338,888 |
+| Rows in the final airport-hour table | 1,607,472 |
+
+These figures describe the validated local dataset. A rerun downloads the source
+files currently served by BTS and recomputes the results.
+
+## 2. Which files do I use?
+
+There are only two scripts to run:
+
+| Repository file | Purpose |
+|---|---|
+| `download_bts.py` | Download the 36 original monthly ZIP files. |
+| `prepare_data.py` | Validate, clean, convert times to UTC, aggregate, select candidate airports, and build the final hourly grid. |
+| `requirements.txt` | Python packages needed by the scripts. |
+| `.gitignore` | Keep datasets, generated reports, and local environments out of GitHub. |
+| `README.md` | Instructions and processing decisions. |
+
+**For analysis, start with `processed/final/airport_hourly.parquet`.**
+The associated airport list is `processed/final/airports.csv`.
+
+## 3. How do I run it?
+
+Run the commands below in the repository folder using PowerShell. A virtual
+environment does not need to be activated; these commands call its Python directly.
+
+### First-time setup
 
 ```powershell
+python -m venv .venv
 .\.venv\Scripts\python.exe -m pip install -r requirements.txt
+```
+
+### Download and prepare the full dataset
+
+```powershell
 .\.venv\Scripts\python.exe download_bts.py
 .\.venv\Scripts\python.exe prepare_data.py
 ```
 
-The downloader skips existing valid ZIPs. Preparation reads one month at a time,
-validates it, cleans it, converts scheduled departures to UTC, and aggregates it.
-No separate inspection scripts or pre-generated timezone file are required.
-For a smaller run, add `--start 2023-01 --end 2023-01` to `prepare_data.py`.
-Existing output files for the selected months are replaced on rerun.
+Downloads are sequential and can take time. Running the downloader again skips
+existing ZIP files that pass its integrity check. Preparation processes one month
+at a time and replaces generated outputs for the requested months.
 
-## Outputs (local only)
+### Already have the cleaned monthly files?
 
-- `raw/bts_YYYY_MM.zip`: unchanged original BTS downloads.
-- `processed/flights_utc/flights_YYYY_MM.parquet`: flight records with quality flags and UTC times.
-- `processed/hourly/airport_hourly_YYYY_MM.parquet`: scheduled-departure airport-hour aggregates.
-- `reports/pipeline/`: monthly validation, UTC summary, and unresolved records for the requested range.
-
-## Processing rules
-
-- Preserve flight rows and original values. Remove only entirely empty unnamed columns.
-- Report missing dates, unexpected months, duplicate flight keys, missing airports,
-  invalid HHMM times, and invalid cancellation/diversion flags; stop on structural errors.
-- Mark missing/nonpositive scheduled elapsed times, missing tail numbers, and missing
-  delay values among completed non-diverted flights. Do not replace missing values with zero.
-- Use IANA airport timezones, with an explicit `PBI: America/New_York` override.
-- Preserve scheduled departures coded `2400` as unresolved pending date-convention review.
-- Leave ambiguous/nonexistent daylight-saving times unresolved, with flags and an exception report.
-- Group by origin and UTC scheduled-departure hour. Cancellation rates use all timestamped
-  scheduled flights; delay statistics use completed, non-diverted flights with valid values.
-- Preserve negative and extreme delays. Do not interpolate, clip, or remove seasonal patterns.
-- Arrival delay is a statistic of outbound flight cohorts, not a destination-arrival-hour series.
-- Monthly hourly tables retain known scheduled hours. The final table uses a complete,
-  shared UTC grid for 2023 baseline top-60 airports plus FAA-listed airports present
-  in that baseline (61 candidates). This is candidate selection, not proof that
-  each airport has sufficient observations for Granger analysis.
-- No airport is removed based on delay outcomes. No minimum-flight cutoff is imposed;
-  use the valid-flight counts when setting analysis-specific thresholds.
-- Monthly filenames refer to original BTS flight-date months; some UTC timestamps cross month boundaries.
-
-The earlier run preserved 20,928,579 flights. Of those, 20,928,559 had UTC departure
-timestamps; 18 had unresolved daylight-saving times and 2 had pending `2400` values.
-The consolidated version retains these rules. The original team implementation remains in
-the shared `main` branch and Git history; this branch contains only the new data pipeline.
-
-Only source code and documentation belong in GitHub. Data, reports, environments,
-and local backups are ignored. This pipeline does not perform network analysis.
-
-## Final dataset
-
-For existing cleaned monthly files, finish without redownloading or recleaning:
+Rebuild only the candidate-airport list, final hourly grid, and final reports:
 
 ```powershell
 .\.venv\Scripts\python.exe prepare_data.py --finalize-only
 ```
 
-A normal full-period `prepare_data.py` run now also performs this finalization.
-Finalization requires all 12 baseline flight files for 2023, the requested months'
-cleaned and hourly files, and their original ZIPs for row-count verification.
+This still requires the original ZIP files for count verification, the requested
+months' cleaned flight and hourly files, and all 12 cleaned flight files for the
+2023 airport-selection baseline. **The existing completed dataset does not need
+to be rerun just to use it.**
 
-- `processed/final/airport_hourly.parquet`: one row per candidate airport and UTC hour.
-- `processed/final/airports.csv`: selected airports, baseline ranks, FAA flags, timezones.
-- `reports/pipeline/airport_coverage.csv`: per-airport counts and missing-delay coverage.
-- `reports/pipeline/final_checks.csv`: source, flight, and hourly count reconciliation per month.
-- `reports/pipeline/final_summary.json`: final dimensions and verification result.
-- `reports/pipeline/final_utc_exceptions.csv`: all unresolved records in the requested range.
+For a small preparation check, use `--start 2023-01 --end 2023-01`. A partial
+preparation run creates monthly outputs without automatically building the final
+grid. The normal full-period run performs every stage.
 
-The UTC grid is padded by one day on each side of the local study period to preserve
-all local-date flights. `source_covered` marks hours whose airport-local dates lie
-inside the requested study period. Outside coverage, counts and statistics remain
-missing; do not interpret those hours as zero operations.
+## 4. Where are the outputs?
 
-Within coverage, counts represent records with known UTC departure times. Empty
-hours receive zero counts, but delay statistics and cancellation rates remain
-missing. Hours that may contain an unresolved flight are marked
-`flag_unresolved_flights_possible`; their counts are lower bounds.
-`counts_complete` distinguishes fully assigned counts. For DST ambiguity both
-candidate UTC hours are marked; pending `2400` records mark both possible midnight
-dates. No timestamp is guessed. `no_scheduled_flights` is true only when counts are
-complete and zero. `delay_available` requires complete counts and an observed mean.
+All paths are relative to the repository folder. Data and reports stay local;
+cloning this repository provides the code, not the generated datasets.
 
-The final table retains every hour; do not drop gaps and concatenate observations
-before creating time lags. `mean_arr_delay` still describes outbound flight cohorts.
-No network, Granger, forecasting, interpolation, or seasonal adjustment is performed.
+```text
+raw/                         Original monthly BTS ZIPs
+processed/
+  flights_utc/               Cleaned flight records with UTC times and quality flags
+  hourly/                    Monthly aggregates for hours with known scheduled flights
+  final/
+    airport_hourly.parquet   Final complete airport-hour table
+    airports.csv             The 61 candidate airports and their selection criteria
+reports/pipeline/
+  monthly_audit.csv          Source-data checks, generated by preparation
+  utc_summary.csv            Monthly UTC counts, generated by preparation
+  utc_exceptions.csv         Unresolved UTC records, generated by preparation
+  airport_ranking_2023.csv   All baseline airports ranked by scheduled departures
+  airport_coverage.csv       Coverage and missing-delay statistics for each candidate
+  final_checks.csv           Monthly source/cleaned/aggregate count reconciliation
+  final_utc_exceptions.csv   Unresolved records checked during finalization
+  final_summary.json         Final dimensions and validation result
+```
+
+Preparation reports describe the months requested in that preparation run.
+Finalization reports describe the months requested in that finalization run.
+
+## 5. What cleaning decisions were made?
+
+- **Preserve records:** keep flight rows, cancellation/diversion records, missing
+  tail numbers, and original values. Remove only entirely empty unnamed columns.
+- **Validate before processing:** check required columns, dates, calendar coverage,
+  flight-key duplicates, status flags, and scheduled HHMM values. Structural
+  problems stop processing for review rather than silently deleting records.
+- **Flag questionable values:** mark missing or nonpositive scheduled elapsed times,
+  missing tail numbers, and missing delay values among completed flights.
+- **Keep observed delays:** retain negative delays (early departures) and extreme
+  delays. Do not clip, interpolate, replace missing delays with zero, or remove
+  seasonal patterns in this pipeline.
+- **Use UTC scheduled departure time:** map airport-local scheduled departures to
+  IANA timezones. PBI has an explicit `America/New_York` metadata override.
+- **Keep uncertain timestamps unresolved:** 18 flights fall in ambiguous daylight-
+  saving hours; 2 have scheduled departure code `2400` with a pending date
+  interpretation. They remain in flight records and exception reports, but do not
+  enter an arbitrarily assigned hourly bin.
+
+## 6. How were the 61 airports chosen?
+
+Take the **60 airports with the most scheduled departures in 2023**, then add
+FAA November 2025 flight-cut airports present in that baseline. Rankings count all
+scheduled records, including cancellations and unresolved UTC records.
+
+Of the FAA's 40 airports, 38 are already in the top 60. Adding ANC gives 61
+candidates. TEB has no records in the 2023 baseline and is not included.
+
+The same candidate list is used throughout 2023–2025. This is a selection rule,
+not a finding about airport influence or proof of adequate weekly observations.
+No minimum-flight threshold or coverage-based airport exclusion has been applied.
+
+## 7. What does one final row mean?
+
+**One row = one origin airport × one UTC scheduled-departure hour.**
+For example, a 14:00 UTC row includes flights scheduled to depart from that airport
+between 14:00 and 14:59 UTC, even if they actually departed later or were cancelled.
+
+| Column | Meaning |
+|---|---|
+| `Origin` | Origin airport code. |
+| `hour_utc` | UTC hour start; includes timezone information. |
+| `local_hour_start` | Equivalent airport-local hour, without timezone information. Use UTC as the unique time key. |
+| `n_scheduled` | Scheduled flight records assigned to this hour. |
+| `n_cancelled`, `n_diverted`, `n_completed` | Counts by status; completed means neither cancelled nor diverted. |
+| `n_dep_delay_valid`, `n_arr_delay_valid`, `n_dep_del15_valid` | Number of valid observations used for the corresponding delay measures. |
+| `mean_dep_delay`, `median_dep_delay` | Departure-delay statistics, in minutes. |
+| `mean_arr_delay` | Arrival delay of the outbound flights in this departure-hour cohort. It is **not** a destination arrival-hour measure. |
+| `share_dep_del15` | Fraction of valid completed-flight observations delayed at least 15 minutes at departure, from 0 to 1. |
+| `cancel_rate` | Cancelled flights divided by scheduled flights, from 0 to 1. |
+| `source_covered` | Airport-local date falls within the requested source period. |
+| `flag_unresolved_flights_possible` | An unresolved flight could belong to this hour. |
+| `counts_complete` | Hour is covered and has no potentially unassigned flight. |
+| `no_scheduled_flights` | Counts are complete and the scheduled count is zero. |
+| `delay_available` | Counts are complete and a mean departure delay is observed. |
+
+Delay measures use **completed, non-diverted flights with valid values**.
+Cancellation rates use all scheduled flights with resolved UTC timestamps.
+
+### Empty, incomplete, and boundary hours
+
+The final grid retains every hour and includes one day of UTC padding on each
+side to cover the full airport-local study period.
+
+- Within coverage, hours with no assigned flights have zero counts; delays and
+  cancellation rates remain missing. Zero mean delay means an observed mean of
+  zero minutes, not an absence of flights.
+- At hours flagged for a potentially unresolved flight, counts are lower bounds.
+  Both possible UTC hours are flagged for DST ambiguity; both possible midnight
+  dates are flagged for pending `2400` records. No timestamp is guessed.
+- Outside `source_covered`, counts and statistics are missing. These padding hours
+  are not evidence of zero operations.
+- Monthly filenames refer to the original BTS flight-date month. UTC conversion
+  can place a record in the adjacent UTC month.
+
+**Preserve the UTC time grid when constructing lags.** Dropping missing hours and
+joining the remaining rows would turn unequal real-time gaps into apparent
+one-hour steps. Use the counts, coverage flags, and `airport_coverage.csv` to set
+the later analysis rules. Seasonal adjustment and sufficient-sample checks remain
+part of the downstream analysis.
+
+## 8. What was verified?
+
+For all 36 months, original ZIP row counts match cleaned flight counts, and hourly
+scheduled counts match flights with resolved UTC timestamps. The final selected-
+airport grid preserves those airports' known-UTC scheduled counts, has unique
+airport-hour keys, and has equal, consecutive hourly timestamps for every airport.
+Empty-hour delays and uncovered-hour counts remain missing.
+
+These checks establish processing consistency; they do not resolve every source
+data issue or establish the stability of a Granger network. Consult
+`reports/pipeline/final_summary.json`, `final_checks.csv`, and
+`airport_coverage.csv` before analysis.
+
+## Sources
+
+- [BTS monthly source files](https://transtats.bts.gov/PREZIP/)
+- [FAA November 2025 flight-cut airport list](https://www.faa.gov/newsroom/dot-faa-freeze-flight-reduction-plan-6-response-strong-air-traffic-controller-staffing)
