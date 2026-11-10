@@ -1,0 +1,14 @@
+# Python virtual environment
+.venv/
+
+# Downloaded and generated data
+raw/
+processed/
+*.parquet
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Local secrets
+.env
