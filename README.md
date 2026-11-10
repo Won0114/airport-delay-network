@@ -49,8 +49,8 @@ Existing output files for the selected months are replaced on rerun.
 
 The earlier run preserved 20,928,579 flights. Of those, 20,928,559 had UTC departure
 timestamps; 18 had unresolved daylight-saving times and 2 had pending `2400` values.
-The consolidated version retains these rules. Earlier team code is preserved in
-`reference/original_pipeline/` for comparison and is not used by the new pipeline.
+The consolidated version retains these rules. The original team implementation remains in
+the shared `main` branch and Git history; this branch contains only the new data pipeline.
 
 Only source code and documentation belong in GitHub. Data, reports, environments,
 and local backups are ignored. This pipeline does not perform network analysis.
